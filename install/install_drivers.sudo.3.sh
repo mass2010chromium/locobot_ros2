@@ -8,15 +8,8 @@ sudo apt-get install -y \
         ros-humble-control-msgs \
         ros-humble-simple-actions \
         ros-humble-kobuki-core \
-        ros-humble-kobuki-ros-interface \
+        ros-humble-kobuki-ros-interfaces \
         ros-humble-diagnostic-updater \
-
-
-#########################################
-# kobuki (and udev rules)
-sudo apt-get install -y ros-humble-kobuki-core ros-humble-kobuki-ros-interfaces ros-humble-diagnostic-updater
-#########################################
-
 
 
 #########################################
@@ -29,7 +22,6 @@ sudo apt-get install -y libglfw3 v4l-utils libgtk-dev
 sudo dpkg -i *.deb
 sudo apt-get --fix-broken install -y
 #########################################
-
 
 
 
