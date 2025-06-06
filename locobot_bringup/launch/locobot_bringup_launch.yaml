@@ -1,0 +1,107 @@
+launch:
+
+##################### Sim args (gazebo sim)
+#
+# True to run in sim, False otherwise. Sim is currently unimplemented.
+- arg: {'name': 'sim', 'default': 'false'}
+# Simulation world to launch.
+- arg: {'name': 'world_file', 'default': '$(env TURTLEBOT_GAZEBO_WORLD_FILE)'}
+# Whether the sim will have a graphical interface or not.
+- arg: {'name': 'gui', 'default': 'true'}
+#
+#####################
+
+
+##################### Component args
+#
+# NOTE: We only tested with kobuki. But now, the Create3 is up and running...
+# Options: [kobuki, create]
+- arg: {'name': 'base', 'default': 'kobuki'}
+# Serial port the base is on. (Maybe /dev/ttyX)
+- arg: {'name': 'base_port', 'default': '/dev/kobuki'}
+# Serial port the lidar is on.
+- arg: {'name': 'lidar_port', 'default': '/dev/rplidar'}
+# URDF file to load. The "modified" one is the one robot in lab that's been slightly raised.
+- arg: {'name': 'robot_model', 'default': '$(find-pkg-share locobot_description)/urdf/interbotix_locobot_description_modified.urdf'}
+
+- arg: {'name': 'use_arm', 'default': 'true'}
+#
+#####################
+
+
+# Unreplicated:
+#  <param name="/use_sim_time" value="$(arg sim)"/>
+#  <!-- Copying from turtlebot code. Unsure where this is used. -->  
+#  <param name="robot/name" value="$(optenv ROBOT turtlebot)"/>
+#  <param name="robot/type" value="locobot_lidar"/>
+  
+- node:
+    pkg:    robot_state_publisher
+    exec:   robot_state_publisher
+    name:   robot_state_publisher
+    param:
+    - {'name': 'publish_frequency', 'value': 30.0}
+
+- group:
+    if: '$(var sim)'
+    children:
+    - include:
+        file:     '$(find-pkg-share gazebo_ros)/launch/empty_world.launch'
+        - arg: {'name': 'use_sim_time', 'value': 'true'}
+        - arg: {'name': 'debug', 'value': 'false'}
+        - arg: {'name': 'gui', 'value': '$(var gui)'}
+        - arg: {'name': 'world_name', 'value': '$(var world_file)'}
+
+    - node:
+        pkg:  gazebo_ros
+        exec: spawn_model
+        name: spawn_turtlebot_model
+        args: "$(env ROBOT_INITIAL_POSE '') -unpause -urdf -param robot_description -model mobile_base"
+
+    - node:
+        pkg:  nodelet
+        exec: nodelet
+        name: mobile_base_nodelet_manager
+        args: "manager"
+
+    - node:
+        pkg:  nodelet
+        exec: nodelet
+        name: cmd_vel_mux
+        args: 'load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager'
+        param:
+        - {'name': 'robot_description', } # Textfile!!
+
+
+    <!-- Velocity muxer -->
+    <node pkg="nodelet" type="nodelet" name="cmd_vel_mux"
+          args="">
+      <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml"/>
+      <param
+        name="robot_description"
+        textfile="$(arg robot_model)"/>
+      <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
+    </node>
+  </group>
+
+  <group if="$(arg use_arm)">
+    <param name="use_arm" value="true"/>
+  </group>
+  <param name="use_camera" value="true"/>
+  <group unless="$(arg sim)">
+    <include file="$(find turtlebot_bringup)/launch/includes/mobile_base.launch.xml">
+      <arg name="base" value="$(arg base)" />
+      <arg name="serialport" value="$(arg base_port)" />
+    </include>
+    <include file="$(find locobot_navigation)/launch/lidar.launch">
+      <arg name="serial_port" value="$(arg lidar_port)" />
+    </include>
+    <include file="$(find locobot_control)/launch/dynamixel_controllers.launch">
+    </include>
+
+    <node pkg="diagnostic_aggregator" type="aggregator_node" name="diagnostic_aggregator" >
+      <rosparam command="load" file="$(find turtlebot_bringup)/param/$(arg base)/diagnostics.yaml" />
+    </node>
+  </group>
+
+</launch>
