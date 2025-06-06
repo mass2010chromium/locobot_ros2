@@ -1,0 +1,18 @@
+<launch>
+  <!-- sim RPLIDAR launch node. Cut out points that are part of the frame.-->
+  <arg name="raw" default="false" doc="Use raw scan or filtered scan"/>
+
+  <!-- INPUT: /scan_raw -->
+  <!-- OUTPUT: /scan -->
+
+  <group if="$(arg raw)">
+    <node name="scan_raw_dup" pkg="topic_tools" type="relay" args="/scan_raw /scan" />
+  </group>
+
+  <group unless="$(arg raw)">
+    <node name="lidar_scan_republisher" pkg="locobot_navigation" type="republish_scan.py" output="screen">
+      <param name="lidar_suppression_mask" value="$(find-pkg-share locobot_navigation)/config/lidar_ignore_sim.npy"/>
+    </node>
+  </group>
+
+</launch>

@@ -1,0 +1,134 @@
+<launch>
+    <arg name="use_camera" default="false"/>
+    <arg name="use_arm" default="true"/>
+    <arg name="use_vslam" default="false"/>
+    <arg name="use_base" default="true"/>
+    <arg name="torque_control" default="false"/>
+    <arg name="use_sim" default="true"/>
+    <arg name="teleop" default="true"/>
+    <arg name="use_rviz" default="true"/>
+    <arg name="base" default="kobuki"/> <!-- Options: create and kobuki -->
+    <arg name="base_serial_port" default="$(env TURTLEBOT_SERIAL_PORT)"/>
+
+    <arg name="sim_world_name" default="$(find locobot_gazebo)/worlds/playground.world"/>
+    <arg name="x" default="0"/>
+    <arg name="y" default="0"/>
+    <arg name="z" default="0.05"/>
+
+    <param name="use_camera" value="$(arg use_camera)"/>
+    <param name="use_arm" value="$(arg use_arm)"/>
+    <param name="use_vslam" value="$(arg use_vslam)"/>
+    <param name="use_sim" value="$(arg use_sim)"/>
+    <param name="use_base" value="$(arg use_base)"/>
+    <param name="torque_control" value="$(arg torque_control)"/>
+    <param name="teleop" value="$(arg teleop)"/>
+
+
+
+    <group unless="$(arg use_sim)">
+
+        <group if="$(arg use_camera)">
+            <include file="$(find realsense2_camera)/launch/rs_rgbd.launch">
+                <arg name="enable_pointcloud" value="false"/>
+            </include>
+        </group>
+
+        <group if="$(arg use_base)" >
+            <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager" args="manager"/>
+            <node pkg="nodelet" type="nodelet" name="mobile_base" args="load kobuki_node/KobukiNodelet mobile_base_nodelet_manager">
+                <rosparam file="$(find kobuki_node)/param/base.yaml" command="load"/>
+                <param name="device_port" value="$(arg base_serial_port)" />
+            </node>
+
+            <!--include file="$(find turtlebot_bringup)/launch/includes/mobile_base.launch.xml">
+                <arg name="base" value="$(arg base)" />
+                <arg name="serialport" value="$(arg base_serial_port)" />
+            </include-->
+
+        </group>
+
+        <group if="$(arg teleop)">
+            <include file="$(find locobot_control)/launch/dynamixel_controllers.launch">
+                <arg name="dynamixel_info" value="$(find locobot_control)/config/dynamixels_teleop.yaml"/>
+            </include>
+        </group>
+        <group unless="$(arg teleop)">
+            <group if="$(eval arg('use_arm') or arg('use_camera') or arg('use_vslam'))">
+                <include file="$(find locobot_control)/launch/dynamixel_controllers.launch"/>
+            </group>
+        </group>
+
+        <node name="calibration_tf_broadcaster" pkg="locobot_calibration"
+              type="calibration_publish_transforms.py"/>
+
+        <include file="$(find locobot_navigation)/launch/lidar.launch"/>
+
+    </group>
+
+    <!-- Gazebo -->
+    <group if="$(arg use_sim)">
+        
+        <include file="$(find locobot_gazebo)/launch/gazebo_locobot.launch">
+            <arg name="base" value="$(arg base)"/>
+            <arg name="world_name" value="$(arg sim_world_name)"/>
+            <arg name="x" value="$(arg x)"/>
+            <arg name="y" value="$(arg y)"/>
+            <arg name="z" value="$(arg z)"/>
+        </include>
+
+        <include file="$(find locobot_gazebo)/launch/gazebo_locobot_control.launch"/>
+        <node name="locobot_gazebo" pkg="locobot_gazebo" type="locobot_gazebo" 
+            respawn="true" output="screen"/> 
+
+        <include file="$(find locobot_navigation)/launch/sim_lidar.launch"/>
+
+    </group>
+
+
+    <!-- Common -->
+
+    <node name="pyrobot_kinematics" pkg="pyrobot_bridge"
+                  type="kinematics.py"/>
+
+    <node name="pyrobot_moveit" pkg="pyrobot_bridge"
+                  type="moveit_bridge.py"/>
+
+
+    
+    <group if="$(eval arg('use_base') or arg('use_sim'))" >
+        <node name="scan_dup" pkg="topic_tools" type="relay" args="/scan /scan_filtered" />
+        <node pkg="move_base" type="move_base" name="move_base" respawn="false" output="screen">
+            <rosparam file="$(find locobot_navigation)/config/common_costmap_params_teb.yaml" command="load" ns="global_costmap" />
+            <rosparam file="$(find locobot_navigation)/config/common_costmap_params_teb.yaml" command="load" ns="local_costmap" />
+            <rosparam file="$(find locobot_navigation)/config/local_costmap_params.yaml" command="load" />
+            <rosparam file="$(find locobot_navigation)/config/global_costmap_params.yaml" command="load" />
+            <rosparam file="$(find locobot_navigation)/config/base_local_planner_params.yaml" command="load" />
+            <param name="TebLocalPlannerROS/inflation_dist" value="0.2" />
+            <param name="TebLocalPlannerROS/min_obstacle_dist" value="0.2" />
+            <param name="TebLocalPlannerROS/min_turning_radius" value="0.0" />
+            <!--param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" /-->
+            <param name="base_local_planner" value="range_tree_gap/RangeTreeGapPlanner" />
+      	    <remap from="/cmd_vel" to="/mobile_base/commands/velocity"/>
+        </node>
+    </group>
+    <!--group if="$(eval arg('use_base') or arg('use_sim'))" >
+        <include file="$(find locobot_navigation)/launch/locobot_gpf_pg_laser_controller.launch" pass_all_args="true"/>
+    </group-->
+
+
+    <group if="$(eval base =='create')">
+        <include file="$(find locobot_lite_moveit_config)/launch/demo.launch">
+            <arg name="use_rviz" value="$(arg use_rviz)"/>
+        </include>
+    </group>
+
+    <include file="$(find locobot_navigation)/launch/launch_mapping.launch">
+    </include>
+
+    <group if="$(eval base =='kobuki')">
+        <include file="$(find locobot_moveit_config)/launch/demo.launch">
+            <arg name="use_rviz" value="$(arg use_rviz)"/>
+        </include>
+    </group>
+
+</launch>

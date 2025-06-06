@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>locobot_control</name>
+  <version>0.0.2</version>
+  <description>
+    Low level controllers and interface for LoCoBot.
+  </description>
+  <license>MIT</license>
+  <author email="amurali@andrew.cmu.edu">Adithya Murali</author>
+  <maintainer email="jpeng303@gatech.edu">Jing-Chen Peng</maintainer>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+
+  <depend>simple_actions</depend>
+
+  <depend>control_msgs</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>dynamixel_workbench_msgs</depend>
+  <depend>dynamixel_workbench_toolbox</depend>
+
+  <depend>std_srvs</depend>
+
+  <exec_depend>ros2launch</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

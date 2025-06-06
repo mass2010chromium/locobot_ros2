@@ -1,0 +1,39 @@
+launch:
+
+# Use raw scan or filtered scan
+- arg: {'name': 'raw', 'default': 'false'}
+# port the RPLIDAR is connected to
+- arg: {'name': 'serial_port', 'default': '/dev/rplidar'}
+
+- node:
+    pkg: sllidar_ros2
+    exec: sllidar_node
+    name: lidar
+    param:
+    - {'name': 'serial_port', 'value': '$(var serial_port)'}
+    - {'name': 'serial_baudrate', 'value': 1000000}
+    - {'name': 'frame_id', 'value': 'laser'}
+    - {'name': 'inverted', 'value': false}
+    - {'name': 'angle_compensate', 'value': true}
+    - {'name': 'scan_frequency', 'value': 10.0}
+    remap:
+    - {'from': '/scan', 'to': '/scan_raw'}
+
+- group:
+    if: '$(var raw)'
+    children:
+    - node:
+        pkg: 'topic_tools'
+        exec: 'relay'
+        name: 'scan_raw_dup'
+        args: '/scan_raw /scan'
+
+- group:
+    unless: '$(var raw)'
+    children:
+    - node:
+        pkg: 'locobot_navigation'
+        exec: 'republish_scan'
+        name: 'lidar_scan_republisher'
+        param:
+        - {'name': 'lidar_suppression_mask', 'value': '$(find-pkg-share locobot_navigation)/config/lidar_ignore_calibrated.npy'}
