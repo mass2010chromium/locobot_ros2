@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>locobot_bringup</name>
+  <version>0.0.2</version>
+  <description>locobot launching scripts</description>
+
+  <maintainer email="jpeng303@gatech.edu">Jing-Chen Peng</maintainer>
+  <license>Apache License 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>sllidar_ros</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend>
+</package>

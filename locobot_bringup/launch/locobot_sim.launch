@@ -1,0 +1,52 @@
+<launch>
+  <arg name="gui"        default="true"/>
+  <arg name="world_file" default="$(env TURTLEBOT_GAZEBO_WORLD_FILE)"/>
+
+  <arg name="base"       value="$(optenv TURTLEBOT_BASE kobuki)"/> <!-- create, roomba -->
+  <arg name="3d_sensor"  value="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>  <!-- kinect, asus_xtion_pro -->
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="use_sim_time" value="true"/>
+    <arg name="debug" value="false"/>
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="world_name" value="$(arg world_file)"/>
+  </include>
+
+<!--
+  Below section adapted from turtlebot_gazebo/launch/includes/kobuki.launch.xml
+  Collection of robot-centric definitions and nodes for the turtlebot. 
+ -->
+
+  <!-- Directly use passed in urdf file as argument, or default to the correct description -->
+  <param
+    name="robot_description"
+    textfile="$(find locobot_description)/urdf/interbotix_locobot_description_modified.urdf" />
+
+  <!-- Gazebo model spawner -->
+  <node name="spawn_turtlebot_model" pkg="gazebo_ros" type="spawn_model"
+        args="$(optenv ROBOT_INITIAL_POSE) -unpause -urdf -param robot_description -model mobile_base"/>
+
+  <!-- Velocity muxer -->
+  <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager" args="manager"/>
+  <node pkg="nodelet" type="nodelet" name="cmd_vel_mux"
+        args="load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager">
+    <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml"/>
+    <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
+  </node>
+<!-- END kobuki.launch.xml-->
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="30.0" />
+  </node>
+
+  <!-- Fake laser -->
+  <node pkg="nodelet" type="nodelet" name="laserscan_nodelet_manager" args="manager"/>
+  <node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan"
+        args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet laserscan_nodelet_manager">
+    <param name="scan_height" value="10"/>
+    <param name="output_frame_id" value="camera_depth_frame"/>
+    <param name="range_min" value="0.45"/>
+    <remap from="image" to="/camera/depth/image_raw"/>
+    <remap from="scan" to="/scan"/>
+  </node>
+</launch>
