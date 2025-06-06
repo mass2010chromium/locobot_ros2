@@ -1,6 +1,11 @@
 #!/bin/bash
 
 
+git config --global user.name locobot
+git config --global user.email locobot
+echo "export EDITOR=vim" >> ~/.bashrc
+
+
 mkdir -p ~/locobot_drivers/src
 
 

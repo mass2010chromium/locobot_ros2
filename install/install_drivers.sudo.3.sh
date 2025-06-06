@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ROS packages
-sudo apt-get install \
+sudo apt-get install -y \
         ros-humble-topic-tools \
         ros-humble-dynamixel-workbench \
         ros-humble-dynamixel-workbench-msgs \
@@ -14,7 +14,7 @@ sudo apt-get install \
 
 #########################################
 # kobuki (and udev rules)
-sudo apt-get install ros-humble-kobuki-core ros-humble-kobuki-ros-interfaces ros-humble-diagnostic-updater
+sudo apt-get install -y ros-humble-kobuki-core ros-humble-kobuki-ros-interfaces ros-humble-diagnostic-updater
 #########################################
 
 
@@ -25,9 +25,9 @@ rm -rf /tmp/install_tmp
 mkdir -p /tmp/install_tmp
 cd /tmp/install_tmp
 wget https://github.com/IntelRealSense/librealsense/releases/download/v2.56.3/librealsense2_jammy_x86_debians_beta.zip
-sudo apt-get install libglfw3 v4l-utils libgtk-dev
+sudo apt-get install -y libglfw3 v4l-utils libgtk-dev
 sudo dpkg -i *.deb
-sudo apt-get --fix-broken install
+sudo apt-get --fix-broken install -y
 #########################################
 
 
