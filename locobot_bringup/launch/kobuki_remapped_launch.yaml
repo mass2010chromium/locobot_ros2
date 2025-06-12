@@ -1,0 +1,22 @@
+launch:
+- node_container:
+    pkg: rclcpp_components
+    exec: component_container
+    name: kobuki_base 
+    namespace: ''
+    composable_node:
+    - pkg:      kobuki_node 
+      plugin: kobuki_node::KobukiRos
+      name:   kobuki_ros_node
+      # autodock has kobuki node params which actually use /dev/kobuki
+      param:
+      - from: '$(find-pkg-share kobuki_auto_docking)/config/kobuki_node_params.yaml'
+      remap:
+      - {'from': 'commands/velocity', 'to': '/cmd_vel'}
+    - pkg:  kobuki_auto_docking
+      plugin: kobuki_auto_docking::AutoDockingROS
+      name:   kobuki_auto_docking
+      param:
+      - from: '$(find-pkg-share kobuki_auto_docking)/config/auto_docking.yaml'
+      remap:
+      - {'from': 'commands/velocity', 'to': '/cmd_vel'}

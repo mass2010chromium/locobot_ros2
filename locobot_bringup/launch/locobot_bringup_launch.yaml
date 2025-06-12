@@ -67,16 +67,8 @@ launch:
     - group:
         # Kobuki base group
         children:
-        - node:
-            pkg:  kobuki_node
-            exec: kobuki_ros_node
-            name: kobuki_ros_node
-            param:
-            - from: '$(find-pkg-share kobuki_node)/config/kobuki_node_params.yaml'
-            remap:
-            - {'from': 'commands/velocity', 'to': '/cmd_vel'}
-        #- include:
-        #    file: '$(find-pkg-share kobuki_node)/launch/kobuki_node-launch.py'
+        - include:
+            file: '$(find-pkg-share locobot_bringup)/launch/kobuki_remapped_launch.yaml'
     - include:
         file: '$(find-pkg-share locobot_navigation)/launch/lidar_launch.yaml'
     - include:

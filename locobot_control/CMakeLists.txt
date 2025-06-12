@@ -112,11 +112,11 @@ install(DIRECTORY include/
 )
 
 install(DIRECTORY launch/
-  DESTINATION share/${PROJECT_NAME}/launch
+  DESTINATION share/${PROJECT_NAME}/
 )
 
 install(DIRECTORY config/
-  DESTINATION share/${PROJECT_NAME}/config
+  DESTINATION share/${PROJECT_NAME}/
 )
 
 #ament_export_dependencies(dynamixel_sdk)
