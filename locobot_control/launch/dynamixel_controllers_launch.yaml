@@ -17,4 +17,5 @@ launch:
     - {'name': 'dxl_read_period', 'value': 0.010}
     - {'name': 'dxl_write_period', 'value': 0.010}
     - {'name': 'use_arm', 'value': true}
+    - {'name': 'use_camera', 'value': true}
 

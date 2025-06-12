@@ -73,7 +73,7 @@ LoCoBotController::~LoCoBotController() {
   if (use_group_["arm"]) {
     if (!torque_control_) {
       std::map<std::string, float> restJntsMap;
-      float restJnts[5] = {0, -1.5, 1.5, -0.1812, 0.0153};
+      float restJnts[5] = {0, -1.55, 1.55, 0.2, 0.0};
       restJntsMap["joint_1"] = restJnts[0];
       restJntsMap["joint_2"] = restJnts[1];
       restJntsMap["joint_3"] = restJnts[2];
@@ -92,7 +92,7 @@ LoCoBotController::~LoCoBotController() {
       if (needRest) {
         printf("Going to rest joint... \n");
         sensor_msgs::msg::JointState *intermediate_joint = new sensor_msgs::msg::JointState();
-        intermediate_joint->position = {0, 0.1135, 0.9603, -0.9235, -0.0015};
+        intermediate_joint->position = {0, -0.2, 1.4, 0.6, 0.0};
         goalJointPositionCallback(sensor_msgs::msg::JointState::SharedPtr(intermediate_joint));
 
         usleep(3000000);

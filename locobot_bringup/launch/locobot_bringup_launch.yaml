@@ -5,7 +5,7 @@ launch:
 # True to run in sim, False otherwise. Sim is currently unimplemented.
 - arg: {'name': 'sim', 'default': 'false'}
 # Simulation world to launch.
-- arg: {'name': 'world_file', 'default': '$(env TURTLEBOT_GAZEBO_WORLD_FILE)'}
+- arg: {'name': 'world_file', 'default': '$(env TURTLEBOT_GAZEBO_WORLD_FILE "")'}
 # Whether the sim will have a graphical interface or not.
 - arg: {'name': 'gui', 'default': 'true'}
 #
@@ -34,74 +34,50 @@ launch:
 #  <!-- Copying from turtlebot code. Unsure where this is used. -->  
 #  <param name="robot/name" value="$(optenv ROBOT turtlebot)"/>
 #  <param name="robot/type" value="locobot_lidar"/>
-  
+
 - node:
     pkg:    robot_state_publisher
     exec:   robot_state_publisher
     name:   robot_state_publisher
     param:
     - {'name': 'publish_frequency', 'value': 30.0}
+    - name: robot_description
+      type: str
+      value: "$(command 'cat $(var robot_model)')"
 
 - group:
     if: '$(var sim)'
     children:
     - include:
-        file:     '$(find-pkg-share gazebo_ros)/launch/empty_world.launch'
-        - arg: {'name': 'use_sim_time', 'value': 'true'}
-        - arg: {'name': 'debug', 'value': 'false'}
-        - arg: {'name': 'gui', 'value': '$(var gui)'}
-        - arg: {'name': 'world_name', 'value': '$(var world_file)'}
-
+        file: '$(find-pkg-share gazebo_ros)/launch/empty_world.launch'
+        arg:
+        - {'name': 'use_sim_time', 'value': 'true'}
+        - {'name': 'debug', 'value': 'false'}
+        - {'name': 'gui', 'value': '$(var gui)'}
+        - {'name': 'world_name', 'value': '$(var world_file)'}
     - node:
         pkg:  gazebo_ros
         exec: spawn_model
         name: spawn_turtlebot_model
         args: "$(env ROBOT_INITIAL_POSE '') -unpause -urdf -param robot_description -model mobile_base"
 
-    - node:
-        pkg:  nodelet
-        exec: nodelet
-        name: mobile_base_nodelet_manager
-        args: "manager"
-
-    - node:
-        pkg:  nodelet
-        exec: nodelet
-        name: cmd_vel_mux
-        args: 'load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager'
-        param:
-        - {'name': 'robot_description', } # Textfile!!
-
-
-    <!-- Velocity muxer -->
-    <node pkg="nodelet" type="nodelet" name="cmd_vel_mux"
-          args="">
-      <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml"/>
-      <param
-        name="robot_description"
-        textfile="$(arg robot_model)"/>
-      <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
-    </node>
-  </group>
-
-  <group if="$(arg use_arm)">
-    <param name="use_arm" value="true"/>
-  </group>
-  <param name="use_camera" value="true"/>
-  <group unless="$(arg sim)">
-    <include file="$(find turtlebot_bringup)/launch/includes/mobile_base.launch.xml">
-      <arg name="base" value="$(arg base)" />
-      <arg name="serialport" value="$(arg base_port)" />
-    </include>
-    <include file="$(find locobot_navigation)/launch/lidar.launch">
-      <arg name="serial_port" value="$(arg lidar_port)" />
-    </include>
-    <include file="$(find locobot_control)/launch/dynamixel_controllers.launch">
-    </include>
-
-    <node pkg="diagnostic_aggregator" type="aggregator_node" name="diagnostic_aggregator" >
-      <rosparam command="load" file="$(find turtlebot_bringup)/param/$(arg base)/diagnostics.yaml" />
-    </node>
-  </group>
-
-</launch>
+- group:
+    unless: '$(var sim)'
+    children:
+    - group:
+        # Kobuki base group
+        children:
+        - node:
+            pkg:  kobuki_node
+            exec: kobuki_ros_node
+            name: kobuki_ros_node
+            param:
+            - from: '$(find-pkg-share kobuki_node)/config/kobuki_node_params.yaml'
+            remap:
+            - {'from': 'commands/velocity', 'to': '/cmd_vel'}
+        #- include:
+        #    file: '$(find-pkg-share kobuki_node)/launch/kobuki_node-launch.py'
+    - include:
+        file: '$(find-pkg-share locobot_navigation)/launch/lidar_launch.yaml'
+    - include:
+        file: '$(find-pkg-share locobot_control)/launch/dynamixel_controllers_launch.yaml'

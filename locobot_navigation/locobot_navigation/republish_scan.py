@@ -31,7 +31,7 @@ def main():
     laser_frame = node.declare_parameter('/laser_frame', 'laser')
     fix_laser_frame = node.declare_parameter('/fix_laser_frame', 'laser_upright')
     robot_frame = node.declare_parameter('/robot_frame', 'base_link')
-    data_filename = node.declare_parameter('~lidar_suppression_mask')
+    data_filename = node.declare_parameter('~lidar_suppression_mask', None)
 
     buffer = Buffer()
     listener = TransformListener(buffer, node)

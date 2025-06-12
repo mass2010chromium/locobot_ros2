@@ -9,6 +9,7 @@ apt-get upgrade -y
 # Create locobot user. (with dummy password)
 useradd -m -s /bin/bash locobot
 echo "locobot:locobot" | sudo chpasswd
+usermod -G dialout locobot
 
 
 
@@ -24,7 +25,7 @@ apt-get install -y openssh-server
 read -n 1 -s -r -p "Waiting for user to set up ssh by key..."
 echo "" # Move to the next line
 # Edit ssh config to disable password ssh
-sed -i '/PasswordAuthentication/c\PasswordAuthentication No.' /etc/ssh/sshd_config
+sudo sed -i "/^[^#]*PasswordAuthentication[[:space:]]no/c\PasswordAuthentication yes" /etc/ssh/sshd_config
 service ssh restart
 
 

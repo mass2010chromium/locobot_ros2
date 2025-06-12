@@ -18,6 +18,7 @@ for locobot_description robot</p>
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>gazebo</exec_depend>
   <export>
+    <build_type>ament_cmake</build_type>
     <architecture_independent />
   </export>
 </package>
