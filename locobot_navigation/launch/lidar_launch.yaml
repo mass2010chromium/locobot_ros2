@@ -32,8 +32,9 @@ launch:
     unless: '$(var raw)'
     children:
     - node:
-        pkg: 'locobot_navigation'
-        exec: 'republish_scan'
-        name: 'lidar_scan_republisher'
+        pkg:    locobot_navigation
+        exec:   republish_scan
+        name:   lidar_scan_republisher
+        output: screen
         param:
         - {'name': 'lidar_suppression_mask', 'value': '$(find-pkg-share locobot_navigation)/config/lidar_ignore_calibrated.npy'}

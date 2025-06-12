@@ -35,15 +35,16 @@ launch:
 #  <param name="robot/name" value="$(optenv ROBOT turtlebot)"/>
 #  <param name="robot/type" value="locobot_lidar"/>
 
-- node:
-    pkg:    robot_state_publisher
-    exec:   robot_state_publisher
-    name:   robot_state_publisher
-    param:
-    - {'name': 'publish_frequency', 'value': 30.0}
-    - name: robot_description
-      type: str
-      value: "$(command 'cat $(var robot_model)')"
+# - node:
+#     pkg:    robot_state_publisher
+#     exec:   robot_state_publisher
+#     name:   robot_state_publisher
+#     param:
+#     - {'name': 'publish_frequency', 'value': 30.0}
+#     - {'name': 'ignore_timestamp', 'value': true}
+#     - name: robot_description
+#       type: str
+#       value: "$(command 'cat $(var robot_model)')"
 
 - group:
     if: '$(var sim)'

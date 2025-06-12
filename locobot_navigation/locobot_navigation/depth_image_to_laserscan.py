@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # TODO: Write this all in c++
+
 import os
 os.environ['MKL_NUM_THREADS'] = "1"
 os.environ['OPENBLAS_NUM_THREADS'] = "1"
@@ -58,9 +59,9 @@ if __name__ == "__main__":
     rclpy.init()
     node = Node('depth_image_to_laserscan')
 
-    pub = node.create_publisher("scan", LaserScan, 10)
+    pub = node.create_publisher(LaserScan, "scan", 10)
     tf_buffer = Buffer()
-    tf_listener = TransformListener(buffer, node)
+    tf_listener = TransformListener(tf_buffer, node)
 
     camera_tf = np.eye
     base_frame = 'base_link'
@@ -82,10 +83,10 @@ if __name__ == "__main__":
 
     t0 = time.time()
     try:
-        while not rclpy.is_shutdown():
+        while rclpy.ok():
             try:
-                t0 = rclpy.time.Time()
-                T = tf_buffer.lookupTransform(base_frame, cam_frame, t0).transform
+                cur_t = rclpy.time.Time()
+                T = tf_buffer.lookupTransform(base_frame, cam_frame, cur_t).transform
                 pos = [T.translation.x, T.translation.y, T.translation.z]
                 quat = [T.rotation.x, T.rotation.y, T.rotation.z, T.rotation.w]
                 camera_transform = from_quaternion_xyz([*pos, *quat])
