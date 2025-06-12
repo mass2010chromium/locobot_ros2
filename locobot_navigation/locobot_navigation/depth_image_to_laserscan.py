@@ -5,7 +5,9 @@ os.environ['MKL_NUM_THREADS'] = "1"
 os.environ['OPENBLAS_NUM_THREADS'] = "1"
 
 import rclpy
-import tf
+from rclpy.node import Node
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 from std_msgs.msg import Header
 from sensor_msgs.msg import LaserScan
 
@@ -53,9 +55,12 @@ if __name__ == "__main__":
     config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     profile = pipe.start(config)
 
-    rclpy.init_node('depth_image_to_laserscan')
-    pub = rclpy.Publisher("scan", LaserScan)
-    tf_listener = tf.TransformListener()
+    rclpy.init()
+    node = Node('depth_image_to_laserscan')
+
+    pub = node.create_publisher("scan", LaserScan, 10)
+    tf_buffer = Buffer()
+    tf_listener = TransformListener(buffer, node)
 
     camera_tf = np.eye
     base_frame = 'base_link'
@@ -78,13 +83,14 @@ if __name__ == "__main__":
     t0 = time.time()
     try:
         while not rclpy.is_shutdown():
-            if tf_listener.frameExists(base_frame) and tf_listener.frameExists(cam_frame):
-                try:
-                    t = tf_listener.getLatestCommonTime(base_frame, cam_frame)
-                    pos, quat = tf_listener.lookupTransform(base_frame, cam_frame, t)
-                    camera_transform = from_quaternion_xyz([*pos, *quat])
-                except:
-                    print("Could not get transform...")
+            try:
+                t0 = rclpy.time.Time()
+                T = tf_buffer.lookupTransform(base_frame, cam_frame, t0).transform
+                pos = [T.translation.x, T.translation.y, T.translation.z]
+                quat = [T.rotation.x, T.rotation.y, T.rotation.z, T.rotation.w]
+                camera_transform = from_quaternion_xyz([*pos, *quat])
+            except:
+                print("Could not get transform...")
 
             frames = pipe.wait_for_frames()
             aligned_frames = align.process(frames)
@@ -108,27 +114,38 @@ if __name__ == "__main__":
             angle_sweep = np.arange(-(num_scan_points//2), (num_scan_points//2), dtype=float) * angle_delta
             orth_vectors = np.vstack([np.cos(angle_sweep), np.sin(angle_sweep), np.zeros(len(angle_sweep))]).T
             pt_start_idx = 0
+
+            scan_start_idx = num_scan_points
+            scan_end_idx = 0
             for i in range(num_scan_points):
                 pt_end_idx = np.searchsorted(angles_sorted, angle_sweep[i], side='right')
                 if pt_end_idx != pt_start_idx:
+                    scan_start_idx = min(scan_start_idx, i)
+
                     # Jumped forward! Extract ray distances that were between these angles.
                     ranges[i] = np.min(np.dot(rays_sorted[pt_start_idx:pt_end_idx], orth_vectors[i]))
                     if ranges[i] < range_min:
                         ranges[i] = 0
+                    else:
+                        scan_end_idx = i
                     pt_start_idx = pt_end_idx
 
-            out_msg = LaserScan()
-            out_msg.header = Header(stamp=rclpy.Time.now(), frame_id=base_frame)
-            out_msg.angle_min = angle_min
-            out_msg.angle_max = angle_max
-            out_msg.angle_increment = angle_delta
-            out_msg.time_increment = time_increment
-            out_msg.scan_time = scan_time
-            out_msg.range_min = range_min
-            out_msg.range_max = range_max
-            out_msg.ranges = ranges
-            out_msg.intensities = intensities
-            pub.publish(out_msg)
+            if scan_start_idx > scan_end_idx:
+                print("Invalid scan! not publishing")
+
+            else:
+                out_msg = LaserScan()
+                out_msg.header = Header(stamp=rclpy.Time.now(), frame_id=base_frame)
+                out_msg.angle_min = angle_sweep[scan_start_idx]
+                out_msg.angle_max = angle_sweep[scan_end_idx]
+                out_msg.angle_increment = angle_delta
+                out_msg.time_increment = time_increment
+                out_msg.scan_time = scan_time
+                out_msg.range_min = range_min
+                out_msg.range_max = range_max
+                out_msg.ranges = ranges[scan_start_idx:scan_end_idx + 1]
+                out_msg.intensities = intensities
+                pub.publish(out_msg)
 
             t1 = time.time()
             print(t1 - t0)

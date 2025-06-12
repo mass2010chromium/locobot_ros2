@@ -14,13 +14,17 @@ sudo apt-get install -y \
 
 #########################################
 # realsense
-rm -rf /tmp/install_tmp
-mkdir -p /tmp/install_tmp
-cd /tmp/install_tmp
-wget https://github.com/IntelRealSense/librealsense/releases/download/v2.56.3/librealsense2_jammy_x86_debians_beta.zip
-sudo apt-get install -y libglfw3 v4l-utils libgtk-dev
-sudo dpkg -i *.deb
-sudo apt-get --fix-broken install -y
+mkdir -p /etc/apt/keyrings
+curl -sSf https://librealsense.intel.com/Debian/librealsense.pgp | sudo tee /etc/apt/keyrings/librealsense.pgp > /dev/null
+apt-get install -y apt-transport-https
+echo "deb [signed-by=/etc/apt/keyrings/librealsense.pgp] https://librealsense.intel.com/Debian/apt-repo `lsb_release -cs` main" | \
+    sudo tee /etc/apt/sources.list.d/librealsense.list
+sudo apt-get update
+
+apt-get install -y librealsense2-dkms \
+                   librealsense2-utils \
+                   librealsense2-dev \
+                   librealsense2-dbg
 #########################################
 
 
