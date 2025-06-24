@@ -91,17 +91,12 @@ def main():
         out_msg.time_increment = msg.time_increment
         out_msg.scan_time = msg.scan_time
         out_msg.range_min = msg.range_min
-        out_msg.range_max = 999.0#msg.range_max
+        out_msg.range_max = msg.range_max
         out_msg.ranges = scan_arr.tolist()           # MODIFIED
         out_msg.intensities = intensities   # MODIFIED
         node.pub.publish(out_msg)
-        node.get_logger().info("Pub Scan")
 
     node.sub = node.create_subscription(LaserScan, "/scan_raw", scan_callback, 10)
-
-    def test(msg):
-        node.get_logger().info(f"RECV {msg.range_max}")
-    node.sub2 = node.create_subscription(LaserScan, "/scan", test, 10)
     rclpy.spin(node)
 
 if __name__ == "__main__":

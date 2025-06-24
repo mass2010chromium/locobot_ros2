@@ -123,6 +123,8 @@ class LoCoBotController : public rclcpp::Node {
   std::map<int, int> state_list_id_2motor_id_;
   std::map<std::string, const ControlItem *> control_items_;
 
+  double joint_pos[7];
+  double joint_vel[7];
   sensor_msgs::msg::JointState joint_state_msg_;
   std_msgs::msg::Int8 gripper_state_msg_;
 

@@ -108,15 +108,15 @@ install(TARGETS ${LIB_NAME}
 )
 
 install(DIRECTORY include/
-  DESTINATION include/${PROJECT_NAME}/
+  DESTINATION include/
 )
 
 install(DIRECTORY launch/
-  DESTINATION share/${PROJECT_NAME}/
+  DESTINATION share/${PROJECT_NAME}/launch/
 )
 
 install(DIRECTORY config/
-  DESTINATION share/${PROJECT_NAME}/
+  DESTINATION share/${PROJECT_NAME}/config/
 )
 
 #ament_export_dependencies(dynamixel_sdk)

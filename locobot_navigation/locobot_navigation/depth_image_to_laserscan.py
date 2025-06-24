@@ -86,7 +86,7 @@ if __name__ == "__main__":
         while rclpy.ok():
             try:
                 cur_t = rclpy.time.Time()
-                T = tf_buffer.lookupTransform(base_frame, cam_frame, cur_t).transform
+                T = tf_buffer.lookup_transform(base_frame, cam_frame, cur_t).transform
                 pos = [T.translation.x, T.translation.y, T.translation.z]
                 quat = [T.rotation.x, T.rotation.y, T.rotation.z, T.rotation.w]
                 camera_transform = from_quaternion_xyz([*pos, *quat])

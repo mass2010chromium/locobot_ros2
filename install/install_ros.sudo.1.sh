@@ -14,7 +14,7 @@ usermod -G dialout locobot
 
 
 # Quality of life
-apt-get install -y tmux vim net-tools
+apt-get install -y tmux vim net-tools ccache valgrind htop
 
 
 

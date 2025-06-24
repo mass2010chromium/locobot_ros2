@@ -10,6 +10,7 @@ sudo apt-get install -y \
         ros-humble-kobuki-core \
         ros-humble-kobuki-ros-interfaces \
         ros-humble-diagnostic-updater \
+        ros-humble-realsense2-* \
 
 
 #########################################

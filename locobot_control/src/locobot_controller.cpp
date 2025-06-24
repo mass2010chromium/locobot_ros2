@@ -73,7 +73,7 @@ LoCoBotController::~LoCoBotController() {
   if (use_group_["arm"]) {
     if (!torque_control_) {
       std::map<std::string, float> restJntsMap;
-      float restJnts[5] = {0, -1.55, 1.55, 0.2, 0.0};
+      float restJnts[5] = {0, -1.64, 1.62, 0.6, 0.0};
       restJntsMap["joint_1"] = restJnts[0];
       restJntsMap["joint_2"] = restJnts[1];
       restJntsMap["joint_3"] = restJnts[2];
@@ -90,18 +90,18 @@ LoCoBotController::~LoCoBotController() {
       }
 
       if (needRest) {
-        printf("Going to rest joint... \n");
-        sensor_msgs::msg::JointState *intermediate_joint = new sensor_msgs::msg::JointState();
-        intermediate_joint->position = {0, -0.2, 1.4, 0.6, 0.0};
-        goalJointPositionCallback(sensor_msgs::msg::JointState::SharedPtr(intermediate_joint));
-
+        RCLCPP_INFO(rclcpp::get_logger("shutdown"), "Going to rest joint... \n");
+        RCLCPP_INFO(rclcpp::get_logger("shutdown"), "Current joints: %f %f %f %f %f", joint_pos[0], joint_pos[1], joint_pos[2], joint_pos[3], joint_pos[4]);
+        auto target_pos = std::make_shared<sensor_msgs::msg::JointState>();
+        target_pos->position = {joint_pos[0], joint_pos[1], 0.8, 0.5, 0.0};
+        goalJointPositionCallback(target_pos);
+        usleep(1000000);
+        target_pos->position = {0, -0.2, 1.4, -1.0, 0.0};
+        goalJointPositionCallback(target_pos);
+        usleep(1000000);
+        target_pos->position.assign(restJnts, restJnts + 5);
+        goalJointPositionCallback(target_pos);
         usleep(3000000);
-
-        sensor_msgs::msg::JointState *rest_joint = new sensor_msgs::msg::JointState();
-        rest_joint->position.assign(restJnts, restJnts + 5);
-        goalJointPositionCallback(sensor_msgs::msg::JointState::SharedPtr(rest_joint));
-
-        usleep(4000000);
 
       }
       stopDynamixels();
@@ -851,6 +851,8 @@ void LoCoBotController::publishCallback() {
         joint_state_msg_.effort.push_back(effort);
         joint_state_msg_.velocity.push_back(velocity);
         joint_state_msg_.position.push_back(position);
+        joint_pos[i] = position;
+        joint_vel[i] = velocity;
       }
     }
 
