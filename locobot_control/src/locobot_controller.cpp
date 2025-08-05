@@ -1153,7 +1153,7 @@ void LoCoBotController::gripperOpenCallback(const std_msgs::msg::Empty::ConstSha
 }
 
 void LoCoBotController::setPanCallback(const std_msgs::msg::Float64::ConstSharedPtr& msg) {
-  RCLCPP_INFO(rclcpp::get_logger("DEFAULT_LOGGER"), "Set camera pan");
+  //RCLCPP_INFO(rclcpp::get_logger("DEFAULT_LOGGER"), "Set camera pan");
   if (use_group_["camera"]) {
     bool result = false;
     const char *log;
@@ -1167,7 +1167,7 @@ void LoCoBotController::setPanCallback(const std_msgs::msg::Float64::ConstShared
 }
 
 void LoCoBotController::setTiltCallback(const std_msgs::msg::Float64::ConstSharedPtr& msg) {
-  RCLCPP_INFO(rclcpp::get_logger("DEFAULT_LOGGER"), "Set camera tilt");
+  //RCLCPP_INFO(rclcpp::get_logger("DEFAULT_LOGGER"), "Set camera tilt");
   if (use_group_["camera"]) {
     bool result = false;
     const char *log;

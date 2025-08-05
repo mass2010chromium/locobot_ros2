@@ -11,6 +11,8 @@ sudo apt-get install -y \
         ros-humble-kobuki-ros-interfaces \
         ros-humble-diagnostic-updater \
         ros-humble-realsense2-* \
+        ros-humble-navigation2 \
+        ros-humble-nav2-bringup \
 
 
 #########################################
