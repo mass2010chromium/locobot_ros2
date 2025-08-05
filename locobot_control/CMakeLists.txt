@@ -53,6 +53,7 @@ endif(NOT ${YAML_CPP_VERSION} VERSION_LESS "0.5")
 ################################################################################
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/JointCommand.srv"
+  "srv/LookCommand.srv"
 )
 
 # No pinocchio for now
@@ -121,5 +122,6 @@ install(DIRECTORY config/
 
 #ament_export_dependencies(dynamixel_sdk)
 #ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_dependencies(rosidl_default_runtime)
 ament_package()
 

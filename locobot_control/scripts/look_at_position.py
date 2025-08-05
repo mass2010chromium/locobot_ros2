@@ -4,11 +4,12 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float64
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, Vector3
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
+from locobot_control.srv import LookCommand
 
 from motionlib import so3, se3, vectorops as vo
 
@@ -26,17 +27,21 @@ class TiltPanController(Node):
         self.pan_sub = self.create_subscription(Float64, 'pan/state', self.pan_cb, 10)
         self.vel_sub = self.create_subscription(Twist, 'cmd_vel', self.vel_cb, 10)
 
+        self.command_service = self.create_service(LookCommand, 'look_cmd', self.look_cb)
+
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self, spin_thread=True)
 
         self.mode = IDLE
 
         # Idle controller parameters
-        self.sim_t = 0
-        self.t = 0
+        self.t = time.monotonic()
+        self.sim_t = self.t
         self.sim_step = 0.01
         self.orbit_vec = np.array([0.0, 1.0])
         self.prev_vel = None    # vx, vy numpy array.
+        self.idle_tilt = -0.1
+        self.idle_pan_limit = 0.9
 
         # Look-at controller parameters
         self.target = None  # If None, will go to idle mode
@@ -44,6 +49,10 @@ class TiltPanController(Node):
         self.camera_pivot_frame = "head_tilt_link"
         self.base_frame = "base_link"
         self.overshoot_dt = 0.25 # Tuned lol
+
+        # Pause controller parameters
+        self.target_tilt = None
+        self.target_pan = None
 
         self.tilt = None
         self.pan = None
@@ -60,6 +69,10 @@ class TiltPanController(Node):
         """Set to look at a location, specified in the map frame."""
         self.mode = VIEW
 
+    def set_pause_mode(self):
+        """Set to look at a fixed orientation"""
+        self.mode = PAUSE
+
     def set_target(self, target_pos: "vec3 | None"):
         self.target = target_pos
         if target_pos is None:
@@ -75,8 +88,13 @@ class TiltPanController(Node):
             while self.sim_t < self.t:
                 self.update_idle_state(center, amplitude, self.sim_step)
                 self.sim_t += self.sim_step
+            self.set_tilt(self.idle_tilt)
+            self.set_pan(np.clip(self.orbit_vec[0], -self.idle_pan_limit, self.idle_pan_limit))
         elif self.mode == VIEW:
             self.track_target()
+        elif self.mode == PAUSE:
+            self.set_tilt(self.target_tilt)
+            self.set_pan(self.target_pan)
 
 
     def update_idle_state(self, center, amplitude, dt):
@@ -123,12 +141,13 @@ class TiltPanController(Node):
         pos = [T.translation.x, T.translation.y, T.translation.z]
         base_to_head = [T2.translation.x, T2.translation.y, T2.translation.z]
         quat = [T.rotation.w, T.rotation.x, T.rotation.y, T.rotation.z]
-        map_to_head = (so3.from_quaternion(quat), vo.add(base_to_head, pos))
+        map_to_head = (so3.from_quaternion(quat), vo.sub(pos, base_to_head))
 
         vel_fudge = np.array(vel) * self.overshoot_dt
         vel_fudge = (so3.from_moment((0, 0, vel_fudge[2])), (vel_fudge[0], vel_fudge[1], 0))
 
         target_local = se3.apply(se3.inv(vel_fudge), se3.apply(map_to_head, target))
+
         # XY vector
         horiz = np.linalg.norm(target_local[:2])
         pitch = np.atan2(target_local[2], horiz)
@@ -137,7 +156,7 @@ class TiltPanController(Node):
         else:
             yaw = np.atan2(target_local[1], target_local[0])
 
-        pitch = np.clip(pitch, -0.1, 0.5)
+        pitch = np.clip(pitch, -0.3, 0.5)
         yaw = np.clip(yaw, -2.5, 2.5)
         self.set_tilt(-pitch)
         self.set_pan(yaw)
@@ -149,8 +168,22 @@ class TiltPanController(Node):
         self.pan = msg.data
     def vel_cb(self, msg):
         self.vel = [msg.linear.x, msg.linear.y, msg.angular.z]
-        if self.target is None:
-            return
+    def look_cb(self, request, response):
+        mode = request.mode
+        response.result = True
+        if mode == IDLE:
+            self.set_idle_mode()
+            self.idle_tilt = request.tilt
+        elif mode == VIEW:
+            self.set_view_mode()
+            self.set_target([request.target_x, request.target_y, request.target_z])
+        elif mode == PAUSE:
+            self.set_pause_mode()
+            self.target_tilt = request.tilt
+            self.target_pan = request.pan
+        else:
+            response.result = False
+        return response
 
     def set_tilt(self, num):
         self.tilt_pub.publish(Float64(data=num))
@@ -161,9 +194,8 @@ if __name__ == "__main__":
 
     rclpy.init()
     teleop_node = TiltPanController()
-
-    teleop_node.set_target((0.0, 0.0, 1.0))
-    teleop_node.set_view_mode()
+    #teleop_node.set_target([0.0, 0.0, 1.0])
+    #teleop_node.set_view_mode()
 
     angle_limit = 0.9
     dt = 0.2

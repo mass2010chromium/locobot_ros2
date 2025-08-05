@@ -1,0 +1,10 @@
+# This message is used to specify how the camera should behave (idle, straight-ahead, or look at target)
+
+uint8 mode
+float32 tilt
+float32 pan
+float32 target_x
+float32 target_y
+float32 target_z
+---
+bool result
