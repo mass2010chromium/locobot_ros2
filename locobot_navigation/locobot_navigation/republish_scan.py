@@ -64,9 +64,10 @@ def main():
         node.get_logger().info("Upside down lidar detected")
 
     raw_bad_mask = np.load(data_filename)
-    extend = 20
-    bad_mask = np.logical_or(raw_bad_mask, np.roll(raw_bad_mask, extend))
-    bad_mask = np.logical_or(bad_mask, np.roll(raw_bad_mask, -extend))
+    extend = 55
+    bad_mask = raw_bad_mask
+    for i in range(-extend, extend+1):
+        bad_mask = np.logical_or(bad_mask, np.roll(raw_bad_mask, i))
 
     node.pub = node.create_publisher(LaserScan, "/scan", 10)
     

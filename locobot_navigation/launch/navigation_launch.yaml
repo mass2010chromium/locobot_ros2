@@ -1,0 +1,9 @@
+launch:
+
+- include:
+    file: '$(find-pkg-share nav2_bringup)/launch/navigation_launch.py'
+    arg:
+    # Composition causing it to hang...?
+    #- {'name': 'use_composition', 'value': 'True'}
+    - {'name': 'params_file', 'value': '$(find-pkg-share locobot_navigation)/config/nav2_params.yaml'}
+

@@ -25,6 +25,9 @@ launch:
 - arg: {'name': 'robot_model', 'default': '$(find-pkg-share locobot_description)/urdf/interbotix_locobot_description_modified.urdf'}
 
 - arg: {'name': 'use_arm', 'default': 'true'}
+- arg: {'name': 'use_mapping', 'default': 'true'}
+- arg: {'name': 'use_navigation', 'default': 'true'}
+
 #
 #####################
 
@@ -74,3 +77,16 @@ launch:
         file: '$(find-pkg-share locobot_navigation)/launch/lidar_launch.yaml'
     - include:
         file: '$(find-pkg-share locobot_control)/launch/dynamixel_controllers_launch.yaml'
+
+- group:
+    if: '$(var use_mapping)'
+    children:
+    - include:
+        file: '$(find-pkg-share locobot_navigation)/launch/mapping_launch.yaml'
+
+- group:
+    if: '$(var use_navigation)'
+    children:
+    - include:
+        file: '$(find-pkg-share locobot_navigation)/launch/navigation_launch.yaml'
+
