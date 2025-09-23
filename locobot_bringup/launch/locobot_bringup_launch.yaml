@@ -25,6 +25,7 @@ launch:
 - arg: {'name': 'robot_model', 'default': '$(find-pkg-share locobot_description)/urdf/interbotix_locobot_description_modified.urdf'}
 
 - arg: {'name': 'use_arm', 'default': 'true'}
+- arg: {'name': 'use_camera', 'default': 'true'}
 - arg: {'name': 'use_mapping', 'default': 'true'}
 - arg: {'name': 'use_navigation', 'default': 'true'}
 
@@ -77,6 +78,19 @@ launch:
         file: '$(find-pkg-share locobot_navigation)/launch/lidar_launch.yaml'
     - include:
         file: '$(find-pkg-share locobot_control)/launch/dynamixel_controllers_launch.yaml'
+
+- group:
+    if: '$(var use_camera)'
+    children:
+    - include:
+        file: '$(find-pkg-share realsense2_camera)/launch/rs_launch.py'
+        arg:
+        - {'name': 'enable_rgbd', 'value': 'true'}
+        - {'name': 'enable_sync', 'value': 'true'}
+        - {'name': 'align_depth.enable', 'value': 'true'}
+        - {'name': 'enable_color', 'value': 'true'}
+        - {'name': 'enable_depth', 'value': 'true'}
+
 
 - group:
     if: '$(var use_mapping)'

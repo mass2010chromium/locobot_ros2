@@ -18,8 +18,10 @@ git clone https://github.com/Slamtec/sllidar_ros2.git
 git clone https://github.com/kobuki-base/kobuki_ros.git
 # Explore-lite (ros2 port)
 git clone https://github.com/robo-friends/m-explore-ros2.git
+# cv_bridge for ros 2 (must be built from source due to numpy dependency)
+git clone --branch humble https://github.com/ros-perception/vision_opencv.git
 # ROS domain bridge
-git clone -b humble https://github.com/ros2/domain_bridge.git
+git clone --branch humble https://github.com/ros2/domain_bridge.git
 
 # TODO: Move these to lab repo
 git clone https://github.com/mass2010chromium/locobot_ros2.git
