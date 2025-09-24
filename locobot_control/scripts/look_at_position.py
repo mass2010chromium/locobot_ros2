@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import time
 import numpy as np
 
@@ -32,7 +33,7 @@ class TiltPanController(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self, spin_thread=True)
 
-        self.mode = IDLE
+        self.mode = PAUSE
 
         # Idle controller parameters
         self.t = time.monotonic()
@@ -51,8 +52,8 @@ class TiltPanController(Node):
         self.overshoot_dt = 0.25 # Tuned lol
 
         # Pause controller parameters
-        self.target_tilt = None
-        self.target_pan = None
+        self.target_tilt = self.idle_tilt
+        self.target_pan = 0.0
 
         self.tilt = None
         self.pan = None

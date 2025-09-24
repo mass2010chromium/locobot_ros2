@@ -90,7 +90,10 @@ launch:
         - {'name': 'align_depth.enable', 'value': 'true'}
         - {'name': 'enable_color', 'value': 'true'}
         - {'name': 'enable_depth', 'value': 'true'}
-
+    - node:
+        pkg:  locobot_control
+        exec: look_at_position.py
+        name: tilt_pan_controller
 
 - group:
     if: '$(var use_mapping)'

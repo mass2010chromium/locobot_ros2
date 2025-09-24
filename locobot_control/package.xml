@@ -11,9 +11,11 @@
   <maintainer email="jpeng303@gatech.edu">Jing-Chen Peng</maintainer>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rclpy</depend>
   <depend>rclcpp_action</depend>
 
   <depend>simple_actions</depend>

@@ -119,6 +119,14 @@ install(DIRECTORY launch/
 install(DIRECTORY config/
   DESTINATION share/${PROJECT_NAME}/config/
 )
+# Install Python modules
+#ament_python_install_package(${PROJECT_NAME})
+
+# Install Python executables
+install(PROGRAMS
+scripts/look_at_position.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 #ament_export_dependencies(dynamixel_sdk)
 #ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
