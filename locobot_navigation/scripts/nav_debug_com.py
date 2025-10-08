@@ -4,6 +4,11 @@ from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 import rclpy
 from rclpy.duration import Duration
 
+from klampt.math import so3
+import math
+
+
+
 
 def main() -> None:
     rclpy.init()
@@ -21,20 +26,29 @@ def main() -> None:
     nav.setInitialPose(init_pose)
     ####
 
+    r = so3.from_axis_angle(([0, 0, 1], math.pi / 2))
+    w, x, y, z = so3.quaternion(r)
+
     goal_pose = PoseStamped()
     goal_pose.header.frame_id = 'map'
     goal_pose.header.stamp = nav.get_clock().now().to_msg()
-    goal_pose.pose.position.x = 0.0
-    goal_pose.pose.position.y = 0.0
+    goal_pose.pose.position.x = -1.0
+    goal_pose.pose.position.y = 1.0
+    goal_pose.pose.orientation.w = w
+    goal_pose.pose.orientation.x = x
+    goal_pose.pose.orientation.y = y
+    goal_pose.pose.orientation.z = z
+
+
 
     path = nav.getPath(init_pose, goal_pose) #to see if a valid path exists
-    go_to_pose_task = nav.goToPose(goal_pose)
+    nav.goToPose(goal_pose)
 
     i = 0
     start_time = nav.get_clock().now()
-    while not nav.isTaskComplete(task = go_to_pose_task):
+    while not nav.isTaskComplete():
         i += 1
-        feedback = nav.getFeedback(task = go_to_pose_task)
+        feedback = nav.getFeedback()
         if feedback:
             print('ETA: ' + '{:.0f}'.format(Duration.from_msg(feedback.estimated_time_remaining).nanoseconds/1e9)
                   + ' secs')
@@ -52,7 +66,7 @@ def main() -> None:
     else:
         print('Goal has invalid return status!')
 
-    nav.lifeclycleShutdown()
+    nav.lifecycleShutdown()
     exit(0)
 
 if __name__ == '__main__':
