@@ -90,6 +90,8 @@ launch:
         - {'name': 'align_depth.enable', 'value': 'true'}
         - {'name': 'enable_color', 'value': 'true'}
         - {'name': 'enable_depth', 'value': 'true'}
+        - {'name': 'depth_module.depth_profile', 'value': '640x480x30'}
+        - {'name': 'rgb_camera.color_profile', 'value': '640x480x30'}
     - node:
         pkg:  locobot_control
         exec: look_at_position.py
