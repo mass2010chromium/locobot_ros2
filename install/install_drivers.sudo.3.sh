@@ -13,6 +13,7 @@ sudo apt-get install -y \
         ros-humble-realsense2-* \
         ros-humble-navigation2 \
         ros-humble-nav2-bringup \
+        ros-humble-nav2-graceful-controller \
         ros-humble-test-msgs \
 
 

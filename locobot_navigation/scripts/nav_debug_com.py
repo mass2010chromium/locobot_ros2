@@ -13,27 +13,30 @@ import math
 def main() -> None:
     rclpy.init()
     nav = BasicNavigator()
+    print("Cancelling nav tasks")
+    nav.cancelTask()
+    input("Enter to go")
     
     ####this part isn't completely necessary. however it's useful when running the script more than once
-    init_pose = PoseStamped() #default (x, y, z) pos = 0.0
-    init_pose.header.frame_id = 'map'
-    init_pose.header.stamp = nav.get_clock().now().to_msg()
-    init_pose.pose.position.x = 0.0
-    init_pose.pose.position.y = 0.0
-    init_pose.pose.position.z = 0.0
-    init_pose.pose.orientation.w = 1.0 #other two quaternion values set to 0 by default
-    init_pose.pose.orientation.z = 0.0
-    nav.setInitialPose(init_pose)
+    #init_pose = PoseStamped() #default (x, y, z) pos = 0.0
+    #init_pose.header.frame_id = 'map'
+    #init_pose.header.stamp = nav.get_clock().now().to_msg()
+    #init_pose.pose.position.x = 0.0
+    #init_pose.pose.position.y = 0.0
+    #init_pose.pose.position.z = 0.0
+    #init_pose.pose.orientation.w = 1.0 #other two quaternion values set to 0 by default
+    #init_pose.pose.orientation.z = 0.0
+    #nav.setInitialPose(init_pose)
     ####
 
-    r = so3.from_axis_angle(([0, 0, 1], math.pi / 2))
+    r = so3.from_axis_angle(([0, 0, 1], 0*(2*math.pi)))
     w, x, y, z = so3.quaternion(r)
 
     goal_pose = PoseStamped()
     goal_pose.header.frame_id = 'map'
     goal_pose.header.stamp = nav.get_clock().now().to_msg()
-    goal_pose.pose.position.x = -1.0
-    goal_pose.pose.position.y = 1.0
+    goal_pose.pose.position.x = -0.2
+    goal_pose.pose.position.y = 0.0
     goal_pose.pose.orientation.w = w
     goal_pose.pose.orientation.x = x
     goal_pose.pose.orientation.y = y
@@ -41,7 +44,7 @@ def main() -> None:
 
 
 
-    path = nav.getPath(init_pose, goal_pose) #to see if a valid path exists
+    #path = nav.getPath(init_pose, goal_pose) #to see if a valid path exists
     nav.goToPose(goal_pose)
 
     i = 0
@@ -66,7 +69,7 @@ def main() -> None:
     else:
         print('Goal has invalid return status!')
 
-    nav.lifecycleShutdown()
+    #nav.lifecycleShutdown()
     exit(0)
 
 if __name__ == '__main__':

@@ -6,3 +6,10 @@ launch:
     name: 'slam_toolbox'
     param:
     - from: '$(find-pkg-share locobot_navigation)/config/slam_toolbox_config.yaml'
+
+- node:
+    pkg:  nav2_map_server
+    exec: map_saver_server
+    name: 'map_server'
+    param:
+    - from: '$(find-pkg-share locobot_navigation)/config/nav2_params.yaml'

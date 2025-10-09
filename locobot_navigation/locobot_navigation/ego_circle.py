@@ -1,5 +1,6 @@
 from functools import cached_property
 
+import os
 import numpy as np
 
 class EgoCircle:
@@ -181,6 +182,7 @@ if __name__ == '__main__':
     from open3d.geometry import AxisAlignedBoundingBox
     from datasource import RosTFDatasource, RosRealsenseDatasource, CombinedDatasource
     from datasource.data_utils import form_point_cloud
+    from datasource.depth_anything import DepthPredictor
     tf_source = RosTFDatasource(transforms, spin_thread=False, node=node)
     rs_source = RosRealsenseDatasource("/camera/camera", node=node)
     rs_source.start()
@@ -191,9 +193,18 @@ if __name__ == '__main__':
     )
 
     pub = node.create_publisher(LaserScan, '/fused_scan', 10)
-    crop_min = np.array([-np.inf, -np.inf, 0.2])
+    crop_min = np.array([-np.inf, -np.inf, 0.1])
     crop_max = np.array([np.inf, np.inf, 1.0])
     crop_box = AxisAlignedBoundingBox(crop_min, crop_max)
+
+    import torch
+    torch.set_grad_enabled(False)
+    CUDA_DEVICE = "cuda:0"
+    device = torch.device(CUDA_DEVICE if torch.cuda.is_available() else "cpu")
+    encoder = 'vits'
+    input_size = 518    # Input resolution?
+    checkpoint_path = os.path.join(os.environ['DEPTH_ANYTHING_ROOT'], 'checkpoints', f'depth_anything_v2_{encoder}.pth')
+    depth_predictor = DepthPredictor(checkpoint_path, device, encoder, input_size)
 
     def scan_callback(msg):
         frame = msg.header.frame_id
