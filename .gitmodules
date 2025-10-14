@@ -1,0 +1,3 @@
+[submodule "slam_toolbox"]
+	path = slam_toolbox
+	url = https://github.com/ivalab/slam_toolbox.git

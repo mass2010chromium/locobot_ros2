@@ -29,9 +29,6 @@ class EgoCircle:
         """
 
         # Homogeneous coordinates.
-        points = np.copy(points)
-        points[:, 2]
-
         if stamp is None:
             # Arbitrary increment to be larger.
             stamp = round(self.latest_stamp) + 1
@@ -130,8 +127,16 @@ class EgoCircle:
                 rs, angle_index, all_priority, all_stamps, all_points_global.T):
             cur_priority = scan_priority[i]
             cur_stamp = scan_stamp[i]
-            if priority >= cur_priority:
-                if priority > cur_priority or stamp > cur_stamp:
+            if priority > cur_priority:
+                scan_priority[i] = priority
+                scan_res[i] = r
+                scan_points[i] = point
+            elif priority == cur_priority:
+                if stamp > cur_stamp:
+                    scan_priority[i] = priority
+                    scan_res[i] = r
+                    scan_points[i] = point
+                if stamp == cur_stamp and r < scan_res[i]:
                     scan_priority[i] = priority
                     scan_res[i] = r
                     scan_points[i] = point
@@ -182,7 +187,6 @@ if __name__ == '__main__':
     from open3d.geometry import AxisAlignedBoundingBox
     from datasource import RosTFDatasource, RosRealsenseDatasource, CombinedDatasource
     from datasource.data_utils import form_point_cloud
-    from datasource.depth_anything import DepthPredictor
     tf_source = RosTFDatasource(transforms, spin_thread=False, node=node)
     rs_source = RosRealsenseDatasource("/camera/camera", node=node)
     rs_source.start()
@@ -197,14 +201,15 @@ if __name__ == '__main__':
     crop_max = np.array([np.inf, np.inf, 1.0])
     crop_box = AxisAlignedBoundingBox(crop_min, crop_max)
 
-    import torch
-    torch.set_grad_enabled(False)
-    CUDA_DEVICE = "cuda:0"
-    device = torch.device(CUDA_DEVICE if torch.cuda.is_available() else "cpu")
-    encoder = 'vits'
-    input_size = 518    # Input resolution?
-    checkpoint_path = os.path.join(os.environ['DEPTH_ANYTHING_ROOT'], 'checkpoints', f'depth_anything_v2_{encoder}.pth')
-    depth_predictor = DepthPredictor(checkpoint_path, device, encoder, input_size)
+    # from datasource.depth_anything import DepthPredictor
+    # import torch
+    # torch.set_grad_enabled(False)
+    # CUDA_DEVICE = "cuda:0"
+    # device = torch.device(CUDA_DEVICE if torch.cuda.is_available() else "cpu")
+    # encoder = 'vits'
+    # input_size = 518    # Input resolution?
+    # checkpoint_path = os.path.join(os.environ['DEPTH_ANYTHING_ROOT'], 'checkpoints', f'depth_anything_v2_{encoder}.pth')
+    # depth_predictor = DepthPredictor(checkpoint_path, device, encoder, input_size)
 
     def scan_callback(msg):
         frame = msg.header.frame_id
@@ -224,7 +229,7 @@ if __name__ == '__main__':
         o3d_pc = form_point_cloud(color_image=frames['color'], depth_image=rs_source.depth_to_meters(frames['depth']),
                                   intrinsics_mat=rs_source.intrinsics, pose=cam_pose).crop(crop_box)
         points = np.asanyarray(o3d_pc.points)
-        accumulator.add_scan_points(points, priority=1)
+        #accumulator.add_scan_points(points, priority=1)
 
         scan_sim, points = accumulator.simulate_scan(robot_pose, prune=True)
 
