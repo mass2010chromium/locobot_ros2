@@ -82,6 +82,9 @@ class EgoCircle:
                 r = r_min / (1 - (hazards[0] * (r_step/r_min)))
                 if r_min < r and r < r_max:
                     res.append(r * ray)
+            # TODO: Clear with furthest ground point?
+            #elif np.any(obs_ray == 1):
+            #    res.append(self.far_range * ray)
         if len(res) == 0:
             return
         res = np.array(res)

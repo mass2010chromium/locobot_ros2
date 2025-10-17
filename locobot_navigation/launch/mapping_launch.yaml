@@ -4,6 +4,7 @@ launch:
     pkg:  slam_toolbox
     exec: sync_slam_toolbox_node
     name: 'slam_toolbox'
+    #launch-prefix: 'xterm -e gdb -ex=r --args'
     param:
     - from: '$(find-pkg-share locobot_navigation)/config/slam_toolbox_config.yaml'
 
