@@ -19,6 +19,15 @@ class EgoCircle:
         self.point_stamps = []
         self.latest_stamp = 0
 
+    def add_depth_image_hazards(self, ego_pose, cam_pose, depth_image, intrinsics,
+                                r_min=0.2, r_max=None, priority=0, stamp=None):
+        # Positions of every point in pixel space
+        # Element [r, c] is the pair (r, c)
+        grid_yx = np.array(np.meshgrid(
+                    *(list(range(x)) for x in depth_image.shape)
+                )).T
+
+
     def add_depth_cloud_hazards(self, ego_pose, local_points,
                                 ground_z, robot_height, tol=0.02,
                                 theta_step=0.005, r_step=0.01,
