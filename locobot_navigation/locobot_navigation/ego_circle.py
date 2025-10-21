@@ -21,7 +21,7 @@ class EgoCircle:
 
     def add_depth_cloud_hazards(self, ego_pose, local_points,
                                 ground_z, robot_height, tol=0.02,
-                                camera_pos, theta_step=0.005
+                                camera_pos=None, theta_step=0.005,
                                 r_min=0.3, r_max=None,
                                 priority=0, stamp=None):
         # Points are expected in robot-local coordinates
@@ -53,18 +53,23 @@ class EgoCircle:
 
         clip_lower = ground_z + tol
         start_idx = 0
+        pit_vals = []
         for i in range(n_theta-1):
             idx_step = np.searchsorted(angles[start_idx:], thetas[i+1], side='right')
             end_idx = start_idx + idx_step
+            if end_idx == start_idx:
+                continue
             z_val = zs[start_idx:end_idx]
-            interfere_val = np.min((z_val > clip_lower) * rs)
+            interfere_val = np.min(rs[start_idx:end_idx][z_val > clip_lower], initial=np.inf)
             pit_val = np.min(ground_intercept[start_idx:end_idx])
+            pit_vals.append(pit_val)
             scan_bins[i] = min(interfere_val, pit_val)
 
             start_idx += idx_step
+        print(np.min(pit_vals))
 
         theta_shift = thetas[:-1] + (theta_step/2)
-        self.add_scan(pose, scan, scan_angles=theta_shift, priority=priority, stamp=stamp):
+        self.add_scan(ego_pose, scan_bins, scan_angles=theta_shift, priority=priority, stamp=stamp)
 
 
     def _add_depth_cloud_hazards(self, ego_pose, local_points,
@@ -244,6 +249,7 @@ class EgoCircle:
         rs = np.linalg.norm(local_points[:2, :], axis=0)
         angles = np.arctan2(local_points[1, :], local_points[0, :])
         angle_index = ((angles + np.pi) / (2*np.pi) * self.num_points).astype(int)
+        angle_index %= self.num_points
 
         scan_res = np.zeros(self.num_points) + self.far_range
         scan_priority = [0] * self.num_points
@@ -353,9 +359,9 @@ if __name__ == '__main__':
                                   intrinsics_mat=rs_source.intrinsics, pose=cam_pose)
         points = np.asanyarray(o3d_pc.points)
         accumulator.add_depth_cloud_hazards(robot_pose, points,
-                                0, 1, tol=0.05,
-                                cam_pose[1], theta_step=0.01,
-                                r_min=0.25, r_max=None
+                                0, 1, tol=0.02,
+                                camera_pos=cam_pose[:3, 3], theta_step=0.01,
+                                r_min=0.25, r_max=None,
                                 priority=1)
 
         scan_sim, points = accumulator.simulate_scan(robot_pose, prune=True)
