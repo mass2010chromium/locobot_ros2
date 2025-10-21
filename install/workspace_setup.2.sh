@@ -25,8 +25,8 @@ git clone --branch humble https://github.com/ros2/domain_bridge.git
 
 # TODO: Move these to lab repo
 git clone https://github.com/mass2010chromium/locobot_ros2.git
-git clone https://github.com/mass2010chromium/ego_map.git   # This one requires password oops
+#git clone https://github.com/mass2010chromium/ego_map.git   # This one requires password oops
 
 
 cd ~/locobot_drivers
-bash src/ego_map/ros2_util/install_util.bash
+bash src/locobot_ros2/ros2_util/install_util.bash
