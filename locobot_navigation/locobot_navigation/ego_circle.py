@@ -19,16 +19,55 @@ class EgoCircle:
         self.point_stamps = []
         self.latest_stamp = 0
 
-    def add_depth_image_hazards(self, ego_pose, cam_pose, depth_image, intrinsics,
-                                r_min=0.2, r_max=None, priority=0, stamp=None):
-        # Positions of every point in pixel space
-        # Element [r, c] is the pair (r, c)
-        grid_yx = np.array(np.meshgrid(
-                    *(list(range(x)) for x in depth_image.shape)
-                )).T
-
-
     def add_depth_cloud_hazards(self, ego_pose, local_points,
+                                ground_z, robot_height, tol=0.02,
+                                camera_pos, theta_step=0.005
+                                r_min=0.3, r_max=None,
+                                priority=0, stamp=None):
+        # Points are expected in robot-local coordinates
+
+        if r_max is None:
+            r_max = self.max_range
+        # Assuming no wraparound (forward facing ish camera)
+        zs = local_points[:, 2]
+        angles = np.arctan2(local_points[:, 1], local_points[:, 0])
+        rs = np.linalg.norm(local_points[:, :2], axis=1)
+        mask = np.logical_and(rs > r_min, zs < robot_height+tol)
+        zs = zs[mask]
+        angles = angles[mask]
+        rs = rs[mask]
+
+        sort_ind = np.argsort(angles)
+        zs = zs[sort_ind]
+        angles = angles[sort_ind]
+        rs = rs[sort_ind]
+        ground_intercept = (rs / zs) * -camera_pos[2]
+        ground_intercept[ground_intercept < 0] = np.inf
+
+        theta_min = np.min(angles)
+        theta_max = np.max(angles)
+        n_theta = int(np.ceil((theta_max - theta_min) / theta_step)) + 1
+        theta_step = (theta_max - theta_min) / (n_theta - 1)
+        thetas = np.linspace(theta_min, theta_max, n_theta)
+        scan_bins = np.zeros(n_theta-1) + np.inf
+
+        clip_lower = ground_z + tol
+        start_idx = 0
+        for i in range(n_theta-1):
+            idx_step = np.searchsorted(angles[start_idx:], thetas[i+1], side='right')
+            end_idx = start_idx + idx_step
+            z_val = zs[start_idx:end_idx]
+            interfere_val = np.min((z_val > clip_lower) * rs)
+            pit_val = np.min(ground_intercept[start_idx:end_idx])
+            scan_bins[i] = min(interfere_val, pit_val)
+
+            start_idx += idx_step
+
+        theta_shift = thetas[:-1] + (theta_step/2)
+        self.add_scan(pose, scan, scan_angles=theta_shift, priority=priority, stamp=stamp):
+
+
+    def _add_depth_cloud_hazards(self, ego_pose, local_points,
                                 ground_z, robot_height, tol=0.02,
                                 theta_step=0.005, r_step=0.01,
                                 r_min=0.3, r_max=None,
@@ -314,9 +353,9 @@ if __name__ == '__main__':
                                   intrinsics_mat=rs_source.intrinsics, pose=cam_pose)
         points = np.asanyarray(o3d_pc.points)
         accumulator.add_depth_cloud_hazards(robot_pose, points,
-                                0, 1, tol=0.10,
-                                theta_step=0.01, r_step=0.01,
-                                r_min=0.4, r_max=1.5,
+                                0, 1, tol=0.05,
+                                cam_pose[1], theta_step=0.01,
+                                r_min=0.25, r_max=None
                                 priority=1)
 
         scan_sim, points = accumulator.simulate_scan(robot_pose, prune=True)
