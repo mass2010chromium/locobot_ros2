@@ -8,7 +8,7 @@ fi
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "$BASH_SOURCE[0]" )" && pwd)
 
-rm -f fastrtps_profile.xml cyclonedds_profile.xml set_env.sh teleop.py restart_ros2.sh
+rm -f fastrtps_profile.xml cyclonedds_profile.xml set_env.sh teleop.py tilt_pan.py restart_ros2.sh
 #ln -s "$SCRIPT_DIR/fastrtps_profile.xml" fastrtps_profile.xml
 ln -s "$SCRIPT_DIR/cyclonedds_profile.xml" cyclonedds_profile.xml
 ln -s "$SCRIPT_DIR/set_env.sh" set_env.sh
