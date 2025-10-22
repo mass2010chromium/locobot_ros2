@@ -18,6 +18,9 @@ class EgoCircle:
         self.point_priority = []
         self.point_stamps = []
         self.latest_stamp = 0
+        self.negative_points = []
+        self.negative_point_priority = []
+        self.negative_point_stamps = []
 
     def add_depth_cloud_hazards(self, ego_pose, local_points,
                                 ground_z, robot_height, tol=0.02,
@@ -41,7 +44,8 @@ class EgoCircle:
         zs = zs[sort_ind]
         angles = angles[sort_ind]
         rs = rs[sort_ind]
-        ground_intercept = (rs / zs) * -camera_pos[2]
+        # X position of ground intercept
+        ground_intercept = (rs / camera_pos[2] - zs)
         ground_intercept[ground_intercept < 0] = np.inf
 
         theta_min = np.min(angles)
@@ -52,8 +56,9 @@ class EgoCircle:
         scan_bins = np.zeros(n_theta-1) + np.inf
 
         clip_lower = ground_z + tol
+        below_ground = ground_z - tol
         start_idx = 0
-        pit_vals = []
+        negative_bins = np.zeros_like(scan_bins)
         for i in range(n_theta-1):
             idx_step = np.searchsorted(angles[start_idx:], thetas[i+1], side='right')
             end_idx = start_idx + idx_step
@@ -61,94 +66,29 @@ class EgoCircle:
                 continue
             z_val = zs[start_idx:end_idx]
             interfere_val = np.min(rs[start_idx:end_idx][z_val > clip_lower], initial=np.inf)
-            pit_val = np.min(ground_intercept[start_idx:end_idx])
-            pit_vals.append(pit_val)
+            pit_val = np.min(ground_intercept[start_idx:end_idx][z_val < below_ground], initial=np.inf)
             scan_bins[i] = min(interfere_val, pit_val)
+            if scan_bins[i] == np.inf:
+                on_ground = np.logical_and(z_val > below_ground, z_val < clip_lower)
+                negative_bins[i] = np.max(ground_intercept[start_idx:end_idx][on_ground], initial=0)
 
             start_idx += idx_step
-        print(np.min(pit_vals))
 
         theta_shift = thetas[:-1] + (theta_step/2)
         self.add_scan(ego_pose, scan_bins, scan_angles=theta_shift, priority=priority, stamp=stamp)
+        self.add_negative_scan(ego_pose, negative_bins, scan_angles=theta_shift, priority=priority, stamp=stamp)
 
+    def add_negative_points(self, points, priority=0, stamp=None):
+        if stamp is None:
+            # Arbitrary increment to be larger.
+            stamp = round(self.latest_stamp) + 1
+        self.latest_stamp = stamp
 
-    def _add_depth_cloud_hazards(self, ego_pose, local_points,
-                                ground_z, robot_height, tol=0.02,
-                                theta_step=0.005, r_step=0.01,
-                                r_min=0.3, r_max=None,
-                                priority=0, stamp=None):
-        # Points are expected in robot-local coordinates
+        # Transform into global frame, and record.
+        self.negative_points.extend(points)
+        self.negative_point_priority.extend([priority] * len(points))
+        self.negative_point_stamps.extend([stamp] * len(points))
 
-        if r_max is None:
-            r_max = self.max_range
-
-        # Assuming no wraparound (forward facing ish camera)
-        zs = local_points[:, 2]
-        angles = np.arctan2(local_points[:, 1], local_points[:, 0])
-        rs = np.linalg.norm(local_points[:, :2], axis=1)
-        zs = zs[rs > r_min]
-        angles = angles[rs > r_min]
-        rs = rs[rs > r_min]
-
-        # Inverse map for resolution
-        # https://www.desmos.com/calculator/yohjwu7osz
-        r_idx = np.floor((r_min/r_step) * (1 - (r_min / rs))).astype(int)
-        n_r = np.ceil(r_min/r_step) + 1
-
-        theta_min = np.min(angles)
-        theta_max = np.max(angles)
-        n_r = int(np.ceil((r_max) / r_step)) + 1
-        n_theta = int(np.ceil((theta_max - theta_min) / theta_step)) + 1
-        theta_step = (theta_max - theta_min) / (n_theta - 1)
-
-        ground_min = ground_z - tol
-        ground_max = ground_z + tol
-        on_ground = np.logical_and(zs > ground_min, zs < ground_max)
-        collides = np.logical_and(zs > ground_max, zs < robot_height),
-
-        theta_idx = ((angles - theta_min) / theta_step).astype(int)
-
-        ground_bins = np.zeros((n_theta, n_r), dtype=int)
-        ground_bins[theta_idx[on_ground], r_idx[on_ground]] = 1
-        obstacle_bins = np.zeros((n_theta, n_r), dtype=int)
-        obstacle_bins[theta_idx[collides], r_idx[collides]] = 3
-        grid_map = np.maximum(ground_bins, obstacle_bins)
-        
-        # Array will be 1 on transitions from ground to unknown.
-        res = []
-        cliff_detect = grid_map[:, :-1] - grid_map[:, 1:]
-        l = len(cliff_detect) // 6
-        cliff_detect[:l] = 0
-        cliff_detect[-l:] = 0
-        thetas = np.linspace(theta_min, theta_max, n_theta)
-        rays = np.array([
-            np.cos(thetas),
-            np.sin(thetas),
-            np.zeros_like(thetas)]
-        ).T
-
-        # Drop the last r step so indices line up
-        for obs_ray, cliff_ray, ray in zip(grid_map[:, :-1], cliff_detect, rays):
-            hazards = np.argwhere(np.logical_or(obs_ray >= 3, cliff_ray == 1))
-            if len(hazards) > 0:
-                # Inverting the inverse map
-                r = r_min / (1 - (hazards[0] * (r_step/r_min)))
-                if r_min < r and r < r_max:
-                    res.append(r * ray)
-            # TODO: Clear with furthest ground point?
-            #elif np.any(obs_ray == 1):
-            #    res.append(self.far_range * ray)
-        if len(res) == 0:
-            return
-        res = np.array(res)
-        res[:, 2] = 1
-
-        # global points are at ego_pose @ local_points
-        pose_2d = np.zeros((3, 3))
-        pose_2d[:2, :2] = ego_pose[:2, :2]
-        pose_2d[:2, 2] = ego_pose[:2, 3]
-        pose_2d[2, 2] = 1
-        self.add_scan_points(res @ pose_2d.T, priority=priority, stamp=stamp)
 
     def add_scan_points(self, points, priority=0, stamp=None):
         """
@@ -170,6 +110,57 @@ class EgoCircle:
         self.point_priority.extend([priority] * len(points))
         self.point_stamps.extend([stamp] * len(points))
 
+        
+    def add_negative_scan(self, pose, scan, scan_angles=None, priority=0, stamp=None):
+        """
+        Add a free space scan measurement to this egocircle.
+
+        Parameters:
+        -----------------
+        pose:           4x4 homogeneous transform
+        scan:           Laserscan (length N array of ranges)
+        scan_angles:    Angles for scan values
+                            default: assume scan ranges from [-pi, pi)
+        priority:       Clearing priority. Higher priority scans
+                            will overwrite lower priority ones.
+        stamp:          Scan timestamp (float or None). Used for clearing
+
+        Return:
+            None.
+        """
+        # TODO: store local pose?
+        # Points can grow unbounded, leading to loss in precision.
+        # Worry about scaling later.
+        pose_2d = np.zeros((3, 3))
+        pose_2d[:2, :2] = pose[:2, :2]
+        pose_2d[:2, 2] = pose[:2, 3]
+        pose_2d[2, 2] = 1
+
+        if stamp is None:
+            # Arbitrary increment to be larger.
+            stamp = round(self.latest_stamp) + 1
+        self.latest_stamp = stamp
+
+        if scan_angles is None:
+            scan_angles = np.linspace(-np.pi, np.pi, len(scan))
+
+        # Remove NaNs.
+        keep_indices = np.logical_not(np.isnan(scan))
+        scan = scan[keep_indices]
+        scan_angles = scan_angles[keep_indices]
+        ## Replace INF with far_range (for projection)
+        scan[scan > self.far_range] = self.far_range
+
+        # Homogeneous coordinates.
+        points = np.array([
+                            np.cos(scan_angles),
+                            np.sin(scan_angles),
+                            np.zeros(len(scan))
+                          ]) * scan
+        points[2] = 1
+
+        # Transform into global frame, and record.
+        self.add_negative_points((pose_2d @ points).T, priority, stamp)
         
     def add_scan(self, pose, scan, scan_angles=None, priority=0, stamp=None):
         """
@@ -240,16 +231,46 @@ class EgoCircle:
         pose_2d[:2, 2] = pose[:2, 3]
         pose_2d[2, 2] = 1
 
-        all_points_global = np.array(self.points).T
+        all_points_global = np.array(self.points).reshape(-1, 3).T
         all_priority = self.point_priority
         all_stamps = self.point_stamps
         pose_inv = np.linalg.inv(pose_2d)
         local_points = pose_inv @ all_points_global
 
+        clear_priority = self.negative_point_priority
+        clear_points = pose_inv @ np.array(self.negative_points).reshape(-1, 3).T
+
         rs = np.linalg.norm(local_points[:2, :], axis=0)
         angles = np.arctan2(local_points[1, :], local_points[0, :])
         angle_index = ((angles + np.pi) / (2*np.pi) * self.num_points).astype(int)
         angle_index %= self.num_points
+
+        clear_rs = np.linalg.norm(clear_points[:2, :], axis=0)
+        clear_angles = np.arctan2(clear_points[1, :], clear_points[0, :])
+        clear_angle_index = ((angles + np.pi) / (2*np.pi) * self.num_points).astype(int)
+        clear_angle_index %= self.num_points
+
+        clear_res = [0]*self.num_points
+        clear_priority = [0]*self.num_points
+        clear_stamp = [-1]*self.num_points
+        for r, i, priority, stamp in zip(
+                clear_rs, clear_angle_index, clear_priority, all_stamps):
+            cur_priority = clear_priority[i]
+            cur_stamp = clear_stamp[i]
+            if priority > cur_priority:
+                clear_priority[i] = priority
+                clear_res[i] = r
+                clear_stamp[i] = stamp
+            elif priority == cur_priority:
+                if stamp > cur_stamp:
+                    clear_priority[i] = priority
+                    clear_res[i]= r
+                    clear_stamp[i] = stamp
+                elif stamp == cur_stamp and r > clear_res[i]:
+                    clear_priority[i] = priority
+                    clear_res[i]= r
+                    clear_stamp[i] = stamp
+                    
 
         scan_res = np.zeros(self.num_points) + self.far_range
         scan_priority = [0] * self.num_points
@@ -257,21 +278,26 @@ class EgoCircle:
         scan_points = [None] * self.num_points
         for r, i, priority, stamp, point in zip(
                 rs, angle_index, all_priority, all_stamps, all_points_global.T):
+            if r < clear_res[i]:
+                continue
             cur_priority = scan_priority[i]
             cur_stamp = scan_stamp[i]
             if priority > cur_priority:
                 scan_priority[i] = priority
                 scan_res[i] = r
                 scan_points[i] = point
+                scan_stamp[i] = stamp
             elif priority == cur_priority:
                 if stamp > cur_stamp:
                     scan_priority[i] = priority
                     scan_res[i] = r
                     scan_points[i] = point
-                if stamp == cur_stamp and r < scan_res[i]:
+                    scan_stamp[i] = stamp
+                elif stamp == cur_stamp and r < scan_res[i]:
                     scan_priority[i] = priority
                     scan_res[i] = r
                     scan_points[i] = point
+                    scan_stamp[i] = stamp
         scan_res[scan_res > self.max_range] = np.inf
         #scan_res = np.minimum(scan_res, self.max_range)
 
@@ -289,8 +315,11 @@ class EgoCircle:
             self.points = points_filt
             self.point_priority = priority_filt
             self.point_stamps = stamp_filt
+            self.negative_points = []
+            self.negative_point_priority = []
+            self.negative_point_stamps = []
 
-        return scan_res, pose_inv @ np.array(points_filt).T
+        return scan_res, pose_inv @ np.array(points_filt).reshape(-1, 3).T
 
 
 
@@ -359,7 +388,7 @@ if __name__ == '__main__':
                                   intrinsics_mat=rs_source.intrinsics, pose=cam_pose)
         points = np.asanyarray(o3d_pc.points)
         accumulator.add_depth_cloud_hazards(robot_pose, points,
-                                0, 1, tol=0.02,
+                                0, 1, tol=0.04,
                                 camera_pos=cam_pose[:3, 3], theta_step=0.01,
                                 r_min=0.25, r_max=None,
                                 priority=1)
