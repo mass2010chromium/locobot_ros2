@@ -28,7 +28,8 @@ setup(
     entry_points={
         'console_scripts': [
                 'depth_image_to_laserscan = locobot_navigation.depth_image_to_laserscan:main',
-                'republish_scan = locobot_navigation.republish_scan:main'
+                'republish_scan = locobot_navigation.republish_scan:main',
+                'py_egocircle = locobot_navigation.ego_circle:main',
         ],
       },
 )

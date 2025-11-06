@@ -61,10 +61,11 @@ sudo apt install -y ros-dev-tools
 sudo apt install -y python3.10-venv build-essential python3-colcon-common-extensions python3-rosdep ros-humble-rmw-cyclonedds-cpp
 
 # Install numpy from source, update to numpy 2
+# vision-opencv is built on numpy 1; we want it to be numpy 2 for compatibility with the python env.
 sudo apt-get install -y gcc g++ gfortran libopenblas-dev liblapack-dev pkg-config python3-pip python3-dev
 # Jank: system python install
 sudo python3 -m pip install --upgrade pip
 sudo pip install ninja cython
-git clone --single-branch --branch https://github.com/numpy/numpy.git
+git clone --recursive --single-branch --branch v2.1.2 https://github.com/numpy/numpy.git
 cd numpy
 sudo pip install .

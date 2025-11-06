@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from functools import cached_property
 
 import os
@@ -323,7 +325,7 @@ class EgoCircle:
 
 
 
-if __name__ == '__main__':
+def main():
     import rclpy
     from rclpy.node import Node
 
@@ -410,3 +412,6 @@ if __name__ == '__main__':
     node.create_subscription(LaserScan, '/scan', scan_callback, 10)
     print("Spinning forever...")
     rclpy.spin(node)
+
+if __name__ == '__main__':
+    main()
