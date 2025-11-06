@@ -10,7 +10,7 @@ mkdir -p ~/locobot_drivers/src
 
 
 cd ~/locobot_drivers
-python3 -m venv test_env
+python3 -m venv locobot_env
 
 
 cd ~/locobot_drivers/src

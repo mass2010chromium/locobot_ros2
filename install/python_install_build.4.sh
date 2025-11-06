@@ -2,10 +2,10 @@
 
 
 cd ~/locobot_drivers/
-touch test_env/COLCON_IGNORE
+touch locobot_env/COLCON_IGNORE
 
-cp install -r src/locobot_ros2/install/.tmux.conf ~/
-cp install -r src/locobot_ros2/install/.vimrc ~/
+cp -r src/locobot_ros2/install/.tmux.conf ~/
+cp -r src/locobot_ros2/install/.vimrc ~/
 
 
 source set_env.sh
